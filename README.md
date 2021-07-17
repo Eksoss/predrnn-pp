@@ -5,7 +5,10 @@ This is a TensorFlow implementation of [PredRNN++](https://arxiv.org/abs/1804.06
 
 ## Setup
 Required python libraries: tensorflow (>=1.0) + opencv + numpy.\
-Tested in ubuntu/centOS + nvidia titan X (Pascal) with cuda (>=8.0) and cudnn (>=5.0).
+Required scikit-image (<=0.16.2).
+
+Tested in win 10 + nvidia RTX 2070 with cuda (>=11.0) and cudnn (>=8.0).
+(old) Tested in ubuntu/centOS + nvidia titan X (Pascal) with cuda (>=8.0) and cudnn (>=5.0).
 
 ## Datasets
 We conduct experiments on three video datasets: [Moving Mnist](https://1drv.ms/f/s!AuK5cwCfU3__fGzXjcOlzTQw158), [Human3.6M](http://vision.imar.ro/human3.6m/description.php), [KTH Actions](http://www.nada.kth.se/cvap/actions/).\
