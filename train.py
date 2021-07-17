@@ -1,9 +1,9 @@
 __author__ = 'yunbo'
 
-import os.path
+import os.path, os
 import time
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 import cv2
 import sys
 import random
@@ -14,20 +14,22 @@ from utils import metrics
 from skimage.measure import compare_ssim
 
 # -----------------------------------------------------------------------------
+tf.compat.v1.disable_eager_execution() # fix eager execution error
+
 FLAGS = tf.app.flags.FLAGS
 
 # data I/O
 tf.app.flags.DEFINE_string('dataset_name', 'mnist',
                            'The name of dataset.')
 tf.app.flags.DEFINE_string('train_data_paths',
-                           'data/moving-mnist-example/moving-mnist-train.npz',
+                           os.getcwd() + '/data/moving-mnist-example/moving-mnist-train.npz',
                            'train data paths.')
 tf.app.flags.DEFINE_string('valid_data_paths',
-                           'data/moving-mnist-example/moving-mnist-valid.npz',
+                           os.getcwd() + '/data/moving-mnist-example/moving-mnist-valid.npz',
                            'validation data paths.')
-tf.app.flags.DEFINE_string('save_dir', 'checkpoints/mnist_predrnn_pp',
+tf.app.flags.DEFINE_string('save_dir', os.getcwd() + '/checkpoints/mnist_predrnn_pp',
                             'dir to store trained net.')
-tf.app.flags.DEFINE_string('gen_frm_dir', 'results/mnist_predrnn_pp',
+tf.app.flags.DEFINE_string('gen_frm_dir', os.getcwd() + '/results/mnist_predrnn_pp',
                            'dir to store result.')
 # model
 tf.app.flags.DEFINE_string('model_name', 'predrnn_pp',
@@ -63,7 +65,7 @@ tf.app.flags.DEFINE_integer('max_iterations', 80000,
                             'max num of steps.')
 tf.app.flags.DEFINE_integer('display_interval', 1,
                             'number of iters showing training loss.')
-tf.app.flags.DEFINE_integer('test_interval', 2000,
+tf.app.flags.DEFINE_integer('test_interval', 200,
                             'number of iters for test.')
 tf.app.flags.DEFINE_integer('snapshot_interval', 10000,
                             'number of iters saving models.')
@@ -72,18 +74,18 @@ class Model(object):
     def __init__(self):
         # inputs
         self.x = tf.placeholder(tf.float32,
-                                [FLAGS.batch_size,
-                                 FLAGS.seq_length,
-                                 FLAGS.img_width/FLAGS.patch_size,
-                                 FLAGS.img_width/FLAGS.patch_size,
-                                 FLAGS.patch_size*FLAGS.patch_size*FLAGS.img_channel])
+                                [int(FLAGS.batch_size),
+                                 int(FLAGS.seq_length),
+                                 int(FLAGS.img_width/FLAGS.patch_size),
+                                 int(FLAGS.img_width/FLAGS.patch_size),
+                                 int(FLAGS.patch_size*FLAGS.patch_size*FLAGS.img_channel)])
 
         self.mask_true = tf.placeholder(tf.float32,
-                                        [FLAGS.batch_size,
-                                         FLAGS.seq_length-FLAGS.input_length-1,
-                                         FLAGS.img_width/FLAGS.patch_size,
-                                         FLAGS.img_width/FLAGS.patch_size,
-                                         FLAGS.patch_size*FLAGS.patch_size*FLAGS.img_channel])
+                                        [int(FLAGS.batch_size),
+                                         int(FLAGS.seq_length-FLAGS.input_length-1),
+                                         int(FLAGS.img_width/FLAGS.patch_size),
+                                         int(FLAGS.img_width/FLAGS.patch_size),
+                                         int(FLAGS.patch_size*FLAGS.patch_size*FLAGS.img_channel)])
 
         grads = []
         loss_train = []
@@ -155,15 +157,16 @@ def main(argv=None):
         FLAGS.dataset_name, FLAGS.train_data_paths, FLAGS.valid_data_paths,
         FLAGS.batch_size, FLAGS.img_width)
 
-    print(Initializing models)
+    print('Initializing models')
     model = Model()
+    print('TEST')
     lr = FLAGS.lr
 
     delta = 0.00002
     base = 0.99998
     eta = 1
 
-    for itr in xrange(1, FLAGS.max_iterations + 1):
+    for itr in range(1, FLAGS.max_iterations + 1):
         if train_input_handle.no_batch_left():
             train_input_handle.begin(do_shuffle=True)
         ims = train_input_handle.get_batch()
@@ -177,25 +180,25 @@ def main(argv=None):
             (FLAGS.batch_size,FLAGS.seq_length-FLAGS.input_length-1))
         true_token = (random_flip < eta)
         #true_token = (random_flip < pow(base,itr))
-        ones = np.ones((FLAGS.img_width/FLAGS.patch_size,
-                        FLAGS.img_width/FLAGS.patch_size,
-                        FLAGS.patch_size**2*FLAGS.img_channel))
-        zeros = np.zeros((FLAGS.img_width/FLAGS.patch_size,
-                          FLAGS.img_width/FLAGS.patch_size,
-                          FLAGS.patch_size**2*FLAGS.img_channel))
+        ones = np.ones((int(FLAGS.img_width/FLAGS.patch_size),
+                        int(FLAGS.img_width/FLAGS.patch_size),
+                        int(FLAGS.patch_size**2*FLAGS.img_channel)))
+        zeros = np.zeros((int(FLAGS.img_width/FLAGS.patch_size),
+                          int(FLAGS.img_width/FLAGS.patch_size),
+                          int(FLAGS.patch_size**2*FLAGS.img_channel)))
         mask_true = []
-        for i in xrange(FLAGS.batch_size):
-            for j in xrange(FLAGS.seq_length-FLAGS.input_length-1):
+        for i in range(FLAGS.batch_size):
+            for j in range(FLAGS.seq_length-FLAGS.input_length-1):
                 if true_token[i,j]:
                     mask_true.append(ones)
                 else:
                     mask_true.append(zeros)
         mask_true = np.array(mask_true)
-        mask_true = np.reshape(mask_true, (FLAGS.batch_size,
-                                           FLAGS.seq_length-FLAGS.input_length-1,
-                                           FLAGS.img_width/FLAGS.patch_size,
-                                           FLAGS.img_width/FLAGS.patch_size,
-                                           FLAGS.patch_size**2*FLAGS.img_channel))
+        mask_true = np.reshape(mask_true, (int(FLAGS.batch_size),
+                                           int(FLAGS.seq_length-FLAGS.input_length-1),
+                                           int(FLAGS.img_width/FLAGS.patch_size),
+                                           int(FLAGS.img_width/FLAGS.patch_size),
+                                           int(FLAGS.patch_size**2*FLAGS.img_channel)))
         cost = model.train(ims, lr, mask_true)
         if FLAGS.reverse_input:
             ims_rev = ims[:,::-1]
@@ -214,17 +217,17 @@ def main(argv=None):
             avg_mse = 0
             batch_id = 0
             img_mse,ssim,psnr,fmae,sharp= [],[],[],[],[]
-            for i in xrange(FLAGS.seq_length - FLAGS.input_length):
+            for i in range(FLAGS.seq_length - FLAGS.input_length):
                 img_mse.append(0)
                 ssim.append(0)
                 psnr.append(0)
                 fmae.append(0)
                 sharp.append(0)
-            mask_true = np.zeros((FLAGS.batch_size,
-                                  FLAGS.seq_length-FLAGS.input_length-1,
-                                  FLAGS.img_width/FLAGS.patch_size,
-                                  FLAGS.img_width/FLAGS.patch_size,
-                                  FLAGS.patch_size**2*FLAGS.img_channel))
+            mask_true = np.zeros((int(FLAGS.batch_size),
+                                  int(FLAGS.seq_length-FLAGS.input_length-1),
+                                  int(FLAGS.img_width/FLAGS.patch_size),
+                                  int(FLAGS.img_width/FLAGS.patch_size),
+                                  int(FLAGS.patch_size**2*FLAGS.img_channel)))
             while(test_input_handle.no_batch_left() == False):
                 batch_id = batch_id + 1
                 test_ims = test_input_handle.get_batch()
@@ -235,7 +238,7 @@ def main(argv=None):
                 img_gen = np.concatenate(img_gen)
                 img_gen = preprocess.reshape_patch_back(img_gen, FLAGS.patch_size)
                 # MSE per frame
-                for i in xrange(FLAGS.seq_length - FLAGS.input_length):
+                for i in range(FLAGS.seq_length - FLAGS.input_length):
                     x = test_ims[:,i + FLAGS.input_length,:,:,0]
                     gx = img_gen[:,i,:,:,0]
                     fmae[i] += metrics.batch_mae_frame_float(gx, x)
@@ -248,7 +251,7 @@ def main(argv=None):
                     real_frm = np.uint8(x * 255)
                     pred_frm = np.uint8(gx * 255)
                     psnr[i] += metrics.batch_psnr(pred_frm, real_frm)
-                    for b in xrange(FLAGS.batch_size):
+                    for b in range(FLAGS.batch_size):
                         sharp[i] += np.max(
                             cv2.convertScaleAbs(cv2.Laplacian(pred_frm[b],3)))
                         score, _ = compare_ssim(pred_frm[b],real_frm[b],full=True)
@@ -258,12 +261,12 @@ def main(argv=None):
                 if batch_id <= 10:
                     path = os.path.join(res_path, str(batch_id))
                     os.mkdir(path)
-                    for i in xrange(FLAGS.seq_length):
+                    for i in range(FLAGS.seq_length):
                         name = 'gt' + str(i+1) + '.png'
                         file_name = os.path.join(path, name)
                         img_gt = np.uint8(test_ims[0,i,:,:,:] * 255)
                         cv2.imwrite(file_name, img_gt)
-                    for i in xrange(FLAGS.seq_length-FLAGS.input_length):
+                    for i in range(FLAGS.seq_length-FLAGS.input_length):
                         name = 'pd' + str(i+1+FLAGS.input_length) + '.png'
                         file_name = os.path.join(path, name)
                         img_pd = img_gen[0,i,:,:,:]
@@ -274,23 +277,23 @@ def main(argv=None):
                 test_input_handle.next()
             avg_mse = avg_mse / (batch_id*FLAGS.batch_size)
             print('mse per seq: ' + str(avg_mse))
-            for i in xrange(FLAGS.seq_length - FLAGS.input_length):
+            for i in range(FLAGS.seq_length - FLAGS.input_length):
                 print(img_mse[i] / (batch_id*FLAGS.batch_size))
             psnr = np.asarray(psnr, dtype=np.float32)/batch_id
             fmae = np.asarray(fmae, dtype=np.float32)/batch_id
             ssim = np.asarray(ssim, dtype=np.float32)/(FLAGS.batch_size*batch_id)
             sharp = np.asarray(sharp, dtype=np.float32)/(FLAGS.batch_size*batch_id)
             print('psnr per frame: ' + str(np.mean(psnr)))
-            for i in xrange(FLAGS.seq_length - FLAGS.input_length):
+            for i in range(FLAGS.seq_length - FLAGS.input_length):
                 print(psnr[i])
             print('fmae per frame: ' + str(np.mean(fmae)))
-            for i in xrange(FLAGS.seq_length - FLAGS.input_length):
+            for i in range(FLAGS.seq_length - FLAGS.input_length):
                 print(fmae[i])
             print('ssim per frame: ' + str(np.mean(ssim)))
-            for i in xrange(FLAGS.seq_length - FLAGS.input_length):
+            for i in range(FLAGS.seq_length - FLAGS.input_length):
                 print(ssim[i])
             print('sharpness per frame: ' + str(np.mean(sharp)))
-            for i in xrange(FLAGS.seq_length - FLAGS.input_length):
+            for i in range(FLAGS.seq_length - FLAGS.input_length):
                 print(sharp[i])
 
         if itr % FLAGS.snapshot_interval == 0:

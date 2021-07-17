@@ -30,8 +30,8 @@ class GHU():
     def __call__(self, x, z):
         if z is None:
             z = self.init_state(x, self.num_features)
-        with tf.variable_scope(self.layer_name):
-            z_concat = tf.layers.conv2d(
+        with tf.compat.v1.variable_scope(self.layer_name):
+            z_concat = tf.compat.v1.layers.conv2d(
                 z, self.num_features*2,
                 self.filter_size, 1, padding='same',
                 kernel_initializer=self.initializer,
@@ -39,7 +39,7 @@ class GHU():
             if self.layer_norm:
                 z_concat = tensor_layer_norm(z_concat, 'state_to_state')
 
-            x_concat = tf.layers.conv2d(
+            x_concat = tf.compat.v1.layers.conv2d(
                 x, self.num_features*2,
                 self.filter_size, 1, padding='same',
                 kernel_initializer=self.initializer,
@@ -49,8 +49,8 @@ class GHU():
 
             gates = tf.add(x_concat, z_concat)
             p, u = tf.split(gates, 2, 3)
-            p = tf.nn.tanh(p)
-            u = tf.nn.sigmoid(u)
+            p = tf.compat.v1.nn.tanh(p)
+            u = tf.compat.v1.nn.sigmoid(u)
             z_new = u * p + (1-u) * z
             return z_new
 
