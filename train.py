@@ -11,7 +11,8 @@ from nets import models_factory
 from data_provider import datasets_factory
 from utils import preprocess
 from utils import metrics
-from skimage.measure import compare_ssim
+from skimage.measure import compare_ssim # scikit-image <= 0.16.2
+# from skimage.metrics import structural_similarity # scikit-image >= 0.18
 
 # -----------------------------------------------------------------------------
 tf.compat.v1.disable_eager_execution() # fix eager execution error
@@ -34,7 +35,7 @@ tf.app.flags.DEFINE_string('gen_frm_dir', os.getcwd() + '/results/mnist_predrnn_
 # model
 tf.app.flags.DEFINE_string('model_name', 'predrnn_pp',
                            'The name of the architecture.')
-tf.app.flags.DEFINE_string('pretrained_model', os.getcwd() + '/checkpoints/mnist_predrnn_pp/model.ckpt-10000',
+tf.app.flags.DEFINE_string('pretrained_model', os.getcwd() + '/checkpoints/mnist_predrnn_pp/model.ckpt-10000', # need to add customization
                            'file of a pretrained model to initialize from.')
 tf.app.flags.DEFINE_integer('input_length', 10,
                             'encoder hidden states.')
@@ -61,6 +62,8 @@ tf.app.flags.DEFINE_boolean('reverse_input', True,
                             'whether to reverse the input frames while training.')
 tf.app.flags.DEFINE_integer('batch_size', 8,
                             'batch size for training.')
+tf.app.flags.DEFINE_integer('starting_itr', 10000, # need to add customization
+                            'starting step.')
 tf.app.flags.DEFINE_integer('max_iterations', 80000,
                             'max num of steps.')
 tf.app.flags.DEFINE_integer('display_interval', 1,
@@ -146,9 +149,15 @@ class Model(object):
         print('saved to ' + FLAGS.save_dir)
 
 def main(argv=None):
+    print('LOG.info starting process')
     # if tf.gfile.Exists(FLAGS.save_dir):
     #     tf.gfile.DeleteRecursively(FLAGS.save_dir)
-    # tf.gfile.MakeDirs(FLAGS.save_dir)
+    try:
+        tf.gfile.MakeDirs(FLAGS.save_dir)
+    except Exception as e:
+        # LOG warning
+        print('LOG.warning %s'%e)
+        pass # I'm lazy rn
     if tf.gfile.Exists(FLAGS.gen_frm_dir):
         tf.gfile.DeleteRecursively(FLAGS.gen_frm_dir)
     tf.gfile.MakeDirs(FLAGS.gen_frm_dir)
@@ -167,7 +176,7 @@ def main(argv=None):
     base = 0.99998
     eta = 1
 
-    for itr in range(1, FLAGS.max_iterations + 1):
+    for itr in range(1 + FLAGS.starting_itr, FLAGS.max_iterations + 1):
         start = time.time()
         if train_input_handle.no_batch_left():
             train_input_handle.begin(do_shuffle=True)
