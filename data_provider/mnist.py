@@ -98,7 +98,7 @@ class InputHandle:
     def output_batch(self):
         if self.no_batch_left():
             return None
-        if(2 ,3) == self.data['dims'].shape:
+        if (2, 3) == self.data['dims'].shape:
             raw_dat = self.data['output_raw_data']
         else:
             raw_dat = self.data['input_raw_data']

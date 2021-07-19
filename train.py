@@ -1,6 +1,6 @@
 __author__ = 'yunbo'
 
-import os.path, os
+import os.path, os, glob
 import time
 import numpy as np
 import tensorflow.compat.v1 as tf
@@ -34,7 +34,7 @@ tf.app.flags.DEFINE_string('gen_frm_dir', os.getcwd() + '/results/mnist_predrnn_
 # model
 tf.app.flags.DEFINE_string('model_name', 'predrnn_pp',
                            'The name of the architecture.')
-tf.app.flags.DEFINE_string('pretrained_model', '',
+tf.app.flags.DEFINE_string('pretrained_model', os.getcwd() + '/checkpoints/mnist_predrnn_pp/model.ckpt-10000',
                            'file of a pretrained model to initialize from.')
 tf.app.flags.DEFINE_integer('input_length', 10,
                             'encoder hidden states.')
@@ -124,6 +124,7 @@ class Model(object):
         self.sess = tf.Session(config = configProt)
         self.sess.run(init)
         if FLAGS.pretrained_model:
+            self.saver = tf.compat.v1.train.import_meta_graph(glob.glob(FLAGS.pretrained_model + '.meta')[-1])
             self.saver.restore(self.sess, FLAGS.pretrained_model)
 
     def train(self, inputs, lr, mask_true):
@@ -145,9 +146,9 @@ class Model(object):
         print('saved to ' + FLAGS.save_dir)
 
 def main(argv=None):
-    if tf.gfile.Exists(FLAGS.save_dir):
-        tf.gfile.DeleteRecursively(FLAGS.save_dir)
-    tf.gfile.MakeDirs(FLAGS.save_dir)
+    # if tf.gfile.Exists(FLAGS.save_dir):
+    #     tf.gfile.DeleteRecursively(FLAGS.save_dir)
+    # tf.gfile.MakeDirs(FLAGS.save_dir)
     if tf.gfile.Exists(FLAGS.gen_frm_dir):
         tf.gfile.DeleteRecursively(FLAGS.gen_frm_dir)
     tf.gfile.MakeDirs(FLAGS.gen_frm_dir)
@@ -167,6 +168,7 @@ def main(argv=None):
     eta = 1
 
     for itr in range(1, FLAGS.max_iterations + 1):
+        start = time.time()
         if train_input_handle.no_batch_left():
             train_input_handle.begin(do_shuffle=True)
         ims = train_input_handle.get_batch()
@@ -300,6 +302,9 @@ def main(argv=None):
             model.save(itr)
 
         train_input_handle.next()
+        end = time.time()
+
+        print('itr %d, time: %.3fs'%(itr, end - start))
 
 if __name__ == '__main__':
     tf.app.run()

@@ -1,4 +1,4 @@
-from data_provider import mnist
+from data_provider import mnist #, goes_chxx
 
 datasets_map = {
     'mnist': mnist,
@@ -33,7 +33,7 @@ def data_provider(dataset_name, train_data_paths, valid_data_paths, batch_size,
                             'minibatch_size': batch_size,
                             'input_data_type': 'float32',
                             'is_output_sequence': True,
-                            'name': dataset_name+'test iterator'}
+                            'name': dataset_name+' test iterator'}
         test_input_handle = datasets_map[dataset_name].InputHandle(test_input_param)
         test_input_handle.begin(do_shuffle = False)
         if is_training:
